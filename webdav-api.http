@@ -1,0 +1,224 @@
+# WebDAV API 文档
+# 基于 nginx WebDAV 配置的完整 HTTP API 
+# 服务器地址: http://youraddr:5500
+
+### 1. 健康检查
+GET http://youraddr:5500/health
+
+### 2. 获取目录列表
+GET http://youraddr:5500/
+Accept: application/json
+
+### 3. 文件上传 - 根目录
+PUT http://youraddr:5500/test-file.txt
+Content-Type: text/plain
+
+This is a test file content.
+
+### 4. 文件上传 - 自动创建子目录
+PUT http://youraddr:5500/documents/report.pdf
+Content-Type: application/pdf
+
+< ./sample.pdf
+
+### 5. 文件上传 - 多级目录自动创建
+PUT http://youraddr:5500/2024/photos/vacation.jpg
+Content-Type: image/jpeg
+
+< ./sample.jpg
+
+### 6. 文件下载
+GET http://youraddr:5500/test-file.txt
+
+### 7. 文件删除
+DELETE http://youraddr:5500/test-file.txt
+
+### 8. 删除子目录文件
+DELETE http://youraddr:5500/documents/report.pdf
+
+### 9. 创建目录
+MKCOL http://youraddr:5500/new-directory/
+
+### 10. 复制文件
+COPY http://youraddr:5500/test-file.txt
+Destination: http://youraddr:5500/backup/test-file-copy.txt
+
+### 11. 移动/重命名文件
+MOVE http://youraddr:5500/test-file.txt
+Destination: http://youraddr:5500/test-file-renamed.txt
+
+### 12. 获取服务器支持的WebDAV方法
+OPTIONS http://youraddr:5500/
+
+### 13. 批量操作示例
+
+### 13.1 批量上传文件
+### 上传多个文件到不同目录
+PUT http://youraddr:5500/images/avatar.png
+Content-Type: image/png
+
+< ./avatar.png
+
+###
+PUT http://youraddr:5500/documents/contract.docx
+Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document
+
+< ./contract.docx
+
+###
+PUT http://youraddr:5500/archives/2024/data.json
+Content-Type: application/json
+
+{
+  "name": "test data",
+  "value": 123
+}
+
+### 13.2 批量删除文件
+DELETE http://youraddr:5500/images/avatar.png
+
+###
+DELETE http://youraddr:5500/documents/contract.docx
+
+### 14. 错误处理测试
+
+### 14.1 删除不存在的文件
+DELETE http://youraddr:5500/non-existent-file.txt
+
+### 14.2 上传到不存在的目录（应该自动创建）
+PUT http://youraddr:5500/temp/upload/test.txt
+Content-Type: text/plain
+
+This file should be uploaded to automatically created directory.
+
+### 15. 前端JavaScript使用示例
+
+### 15.1 使用fetch API上传文件
+POST http://youraddr:5500/upload-demo
+Content-Type: application/json
+
+{
+  "javascript_code": "async function uploadFile(file, path = '') {\n  const formData = new FormData();\n  formData.append('file', file);\n  \n  const response = await fetch(`http://youraddr:5500/${path}${file.name}`, {\n    method: 'PUT',\n    body: file\n  });\n  \n  if (response.status === 201) {\n    console.log('文件上传成功');\n  } else {\n    console.log('文件上传失败:', response.status);\n  }\n}"
+}
+
+### 15.2 使用fetch API删除文件
+POST http://youraddr:5500/delete-demo
+Content-Type: application/json
+
+{
+  "javascript_code": "async function deleteFile(filename) {\n  try {\n    const response = await fetch(`http://youraddr:5500/${filename}`, {\n      method: 'DELETE'\n    });\n    \n    if (response.status === 204) {\n      console.log('文件删除成功');\n    } else {\n      console.log('文件删除失败:', response.status);\n    }\n  } catch (error) {\n    console.error('删除文件时出错:', error);\n  }\n}"
+}
+
+### 16. 响应状态码说明
+
+### 16.1 成功响应
+# 200 OK - 获取文件成功
+# 201 Created - 文件上传/创建成功
+# 204 No Content - 删除成功，无返回内容
+
+### 16.2 客户端错误
+# 400 Bad Request - 请求格式错误
+# 403 Forbidden - 权限不足
+# 404 Not Found - 文件或目录不存在
+# 409 Conflict - 目录不为空（无法删除非空目录）
+
+### 16.3 服务器错误
+# 500 Internal Server Error - 服务器内部错误
+
+### 17. 支持的WebDAV方法总结
+
+### 17.1 基础方法
+# PUT    - 上传/更新文件
+# GET    - 下载文件
+# DELETE - 删除文件或空目录
+# MKCOL  - 创建目录
+# COPY   - 复制文件
+# MOVE   - 移动/重命名文件
+
+### 17.2 扩展方法（需要额外模块）
+# PROPFIND - 获取文件属性
+# OPTIONS  - 获取服务器支持的方法
+# LOCK     - 锁定文件
+# UNLOCK   - 解锁文件
+
+### 18. 使用注意事项
+
+### 18.1 路径规则
+# - 路径区分大小写
+# - 使用正斜杠 / 作为路径分隔符
+# - 目录路径应以 / 结尾
+# - 支持多级目录自动创建
+
+### 18.2 文件大小限制
+# - 当前配置：无限制 (client_max_body_size 0)
+# - 可根据需要调整大小限制
+
+### 18.3 CORS支持
+# - 允许所有来源 (*)
+# - 支持所有HTTP方法
+# - 支持所有请求头
+
+### 19. 测试工具推荐
+
+### 19.1 HTTP客户端
+# - VS Code REST Client (本文件格式)
+# - Postman
+# - curl 命令行工具
+# - Thunder Client (VS Code扩展)
+
+### 19.2 WebDAV客户端
+# - Windows: 资源管理器映射网络驱动器
+# - macOS: Finder连接服务器
+# - Linux: davfs2 或 cadaver
+# - 跨平台: Cyberduck, FileZilla
+
+### 20. 常见问题排查
+
+### 20.1 权限问题
+# 确保nginx用户对存储目录有读写权限
+# chown -R nginx:nginx /data/nginx-upload-storage
+# chmod -R 755 /data/nginx-upload-storage
+
+### 20.2 配置问题
+# 检查nginx是否编译了WebDAV模块
+# nginx -V | grep dav
+
+### 20.3 网络问题
+# 确认服务器地址和端口可访问
+# 检查防火墙设置
+
+### 21. 性能优化建议
+
+### 21.1 大文件上传
+# 使用分块上传
+# 配置适当的超时时间
+# 启用gzip压缩
+
+### 21.2 并发处理
+# 调整worker_processes
+# 配置连接数限制
+# 启用keepalive连接
+
+### 22. 安全建议
+
+### 22.1 访问控制
+# 启用基本认证
+# 配置IP白名单
+# 使用HTTPS加密
+
+### 22.2 文件类型限制
+# 限制可上传的文件类型
+# 扫描恶意文件
+# 设置文件大小限制
+
+### 23. 监控和日志
+
+### 23.1 访问日志
+# 记录所有WebDAV操作
+# 监控文件上传/下载活动
+# 跟踪错误和异常
+
+### 23.2 性能监控
+# 监控磁盘使用情况
+# 跟踪请求响应时间
+# 统计并发连接数
