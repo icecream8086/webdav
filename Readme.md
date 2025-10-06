@@ -2,6 +2,8 @@
 
 ## nginx搭的简易款简易对象存储服务
 
+## 首先拉取`docker.io/library/nginx:latest`镜像
+
 基于WebDAV协议 免去了自己在web服务器实现文件存储的阴间问题
 
 模拟CDN图床行为,服务器管理URL即可，成功解耦后端和数据库和存储池
