@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebDAV 文件管理工具</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: #f5f7fb;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 1000px;
+            padding: 25px;
+        }
+        h1 {
+            margin-top: 0;
+            font-size: 24px;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        h1 img {
+            width: 30px;
+        }
+        .server-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: #f8fafc;
+            padding: 12px 15px;
+            border-radius: 12px;
+            align-items: center;
+        }
+        .server-bar label {
+            font-weight: 500;
+            color: #334155;
+        }
+        .server-bar input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .path-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: #f1f5f9;
+            padding: 8px 15px;
+            border-radius: 30px;
+        }
+        .path-bar .current-path {
+            flex: 1;
+            font-family: monospace;
+            font-size: 15px;
+            color: #0f172a;
+            word-break: break-all;
+        }
+        .path-bar button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 5px;
+            color: #475569;
+        }
+        .path-bar button:hover {
+            color: #0f172a;
+        }
+        .action-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        .action-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            background: #f1f5f9;
+            padding: 5px 10px;
+            border-radius: 40px;
+        }
+        .action-group label {
+            font-weight: 500;
+            color: #334155;
+            font-size: 14px;
+        }
+        .btn {
+            background: white;
+            border: 1px solid #cbd5e1;
+            padding: 8px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1e293b;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-primary {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        .btn-danger {
+            color: #ef4444;
+            border-color: #ef4444;
+            background: white;
+        }
+        .btn-danger:hover {
+            background: #fee2e2;
+        }
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 12px;
+        }
+        .file-list {
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .file-header {
+            display: grid;
+            grid-template-columns: 1fr 100px 80px;
+            background: #f8fafc;
+            padding: 12px 20px;
+            font-weight: 600;
+            color: #475569;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .file-row {
+            display: grid;
+            grid-template-columns: 1fr 100px 80px;
+            align-items: center;
+            padding: 12px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            transition: background 0.1s;
+        }
+        .file-row:hover {
+            background: #f1f5f9;
+        }
+        .file-row:last-child {
+            border-bottom: none;
+        }
+        .file-name {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            color: #0f172a;
+            font-weight: 500;
+        }
+        .file-name.folder {
+            color: #2563eb;
+        }
+        .file-name .icon {
+            font-size: 20px;
+        }
+        .file-size {
+            color: #64748b;
+            font-size: 14px;
+        }
+        .file-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .file-actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 5px;
+            border-radius: 6px;
+            color: #64748b;
+        }
+        .file-actions button:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+        .empty-list {
+            padding: 40px;
+            text-align: center;
+            color: #94a3b8;
+        }
+        .progress-bar {
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: #3b82f6;
+            width: 0%;
+            transition: width 0.2s;
+        }
+        .message {
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 14px;
+            margin-top: 15px;
+            background: #dbeafe;
+            color: #1e40af;
+            display: none;
+        }
+        .message.error {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📁 WebDAV 文件管理器</h1>
+
+        <!-- 服务器地址配置 -->
+        <div class="server-bar">
+            <label>🔗 服务器</label>
+            <input type="text" id="serverBase" value="http://192.168.45.202:5500" placeholder="http://..." />
+            <button class="btn btn-sm" id="refreshBtn" title="刷新当前目录">🔄</button>
+        </div>
+
+        <!-- 当前路径 + 面包屑导航 -->
+        <div class="path-bar">
+            <button id="homeBtn" title="根目录">🏠</button>
+            <span class="current-path" id="currentPathDisplay">/</span>
+            <button id="goToParentBtn" title="上级目录">⬆️</button>
+        </div>
+
+        <!-- 操作区域 -->
+        <div class="action-bar">
+            <div class="action-group">
+                <label>📤 上传文件</label>
+                <input type="file" id="fileInput" multiple style="display:none;" />
+                <button class="btn btn-sm" id="selectFilesBtn">选择文件</button>
+                <button class="btn btn-sm btn-primary" id="uploadBtn" disabled>开始上传</button>
+            </div>
+            <div class="action-group">
+                <label>📂 新建目录</label>
+                <input type="text" id="newDirName" placeholder="目录名" style="width:140px; padding:6px; border-radius:30px; border:1px solid #cbd5e1;" />
+                <button class="btn btn-sm btn-primary" id="mkdirBtn">创建</button>
+            </div>
+        </div>
+
+        <!-- 上传进度条 -->
+        <div id="progressContainer" style="display:none;">
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-bar-fill"></div>
+            </div>
+            <div id="progressText" style="font-size:12px; text-align:right;"></div>
+        </div>
+
+        <!-- 文件列表 -->
+        <div class="file-list">
+            <div class="file-header">
+                <span>文件名</span>
+                <span>大小</span>
+                <span>操作</span>
+            </div>
+            <div id="fileListContainer">
+                <div class="empty-list">加载中...</div>
+            </div>
+        </div>
+
+        <!-- 消息提示 -->
+        <div id="messageBox" class="message"></div>
+    </div>
+
+    <script>
+        (function() {
+            // DOM 元素
+            const serverInput = document.getElementById('serverBase');
+            const currentPathSpan = document.getElementById('currentPathDisplay');
+            const fileListDiv = document.getElementById('fileListContainer');
+            const homeBtn = document.getElementById('homeBtn');
+            const goToParentBtn = document.getElementById('goToParentBtn');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const selectFilesBtn = document.getElementById('selectFilesBtn');
+            const fileInput = document.getElementById('fileInput');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const mkdirBtn = document.getElementById('mkdirBtn');
+            const newDirName = document.getElementById('newDirName');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const messageBox = document.getElementById('messageBox');
+
+            // 状态
+            let currentPath = '/';
+            let serverBase = serverInput.value.trim();
+            let selectedFiles = [];
+
+            // 初始化
+            function normalizePath(path) {
+                return path.startsWith('/') ? path : '/' + path;
+            }
+
+            function joinPath(base, rel) {
+                if (!base.endsWith('/')) base += '/';
+                return base + rel;
+            }
+
+            // 显示消息
+            function showMessage(msg, isError = false) {
+                messageBox.textContent = msg;
+                messageBox.style.display = 'block';
+                messageBox.className = isError ? 'message error' : 'message';
+                setTimeout(() => {
+                    messageBox.style.display = 'none';
+                }, 4000);
+            }
+
+            // 更新当前路径显示
+            function updatePathDisplay() {
+                currentPathSpan.textContent = currentPath;
+            }
+
+            // 获取完整 URL
+            function getFullUrl(path) {
+                path = path.startsWith('/') ? path : '/' + path;
+                return serverBase + path;
+            }
+
+            // 解析 autoindex HTML，返回 { name, isDirectory, size, url } 数组
+            async function fetchFileList(path) {
+                const url = getFullUrl(path);
+                try {
+                    const response = await fetch(url, {
+                        headers: { 'Accept': 'text/html' }
+                    });
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    const html = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const pre = doc.querySelector('pre');
+                    if (!pre) return [];
+
+                    const links = pre.querySelectorAll('a');
+                    const items = [];
+                    for (const a of links) {
+                        const href = a.getAttribute('href');
+                        if (!href || href === '../' || href === '/') continue; // 忽略父目录和根
+
+                        const fullName = a.textContent.trim(); // 显示名称（可能带末尾斜杠）
+                        let name = fullName;
+                        let isDir = href.endsWith('/');
+                        if (isDir) {
+                            name = fullName.replace(/\/$/, ''); // 移除末尾斜杠
+                        }
+
+                        // 尝试获取大小（从后面的文本中解析，但实现复杂，暂且留空）
+                        // 为了简化，不解析大小，仅显示文件夹/文件标识
+                        items.push({
+                            name: name,
+                            isDirectory: isDir,
+                            href: href,
+                            url: new URL(href, url).href,
+                        });
+                    }
+                    return items;
+                } catch (err) {
+                    console.error('获取列表失败', err);
+                    showMessage('加载目录失败: ' + err.message, true);
+                    return [];
+                }
+            }
+
+            // 渲染文件列表
+            async function loadList() {
+                fileListDiv.innerHTML = '<div class="empty-list">加载中...</div>';
+                const items = await fetchFileList(currentPath);
+                if (items.length === 0) {
+                    fileListDiv.innerHTML = '<div class="empty-list">📂 目录为空</div>';
+                    return;
+                }
+                // 排序：文件夹在前，文件在后
+                items.sort((a, b) => {
+                    if (a.isDirectory && !b.isDirectory) return -1;
+                    if (!a.isDirectory && b.isDirectory) return 1;
+                    return a.name.localeCompare(b.name);
+                });
+
+                let html = '';
+                for (const item of items) {
+                    const icon = item.isDirectory ? '📁' : '📄';
+                    const sizeCell = item.isDirectory ? '—' : ''; // 不显示大小，可后续扩展
+                    html += `
+                        <div class="file-row" data-url="${item.url}" data-name="${item.name}" data-is-dir="${item.isDirectory}">
+                            <div class="file-name ${item.isDirectory ? 'folder' : ''}" title="${item.name}">
+                                <span class="icon">${icon}</span>
+                                <span>${item.name}</span>
+                            </div>
+                            <div class="file-size">${sizeCell}</div>
+                            <div class="file-actions">
+                                <button class="copy-link-btn" title="复制链接">🔗</button>
+                                ${!item.isDirectory ? '<button class="download-btn" title="下载">⬇️</button>' : ''}
+                                <button class="delete-btn" title="删除">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                }
+                fileListDiv.innerHTML = html;
+
+                // 绑定事件
+                document.querySelectorAll('.file-row').forEach(row => {
+                    const nameEl = row.querySelector('.file-name');
+                    const isDir = row.dataset.isDir === 'true';
+                    const url = row.dataset.url;
+                    const fileName = row.dataset.name;
+
+                    // 点击文件名进入目录或打开文件
+                    nameEl.addEventListener('click', () => {
+                        if (isDir) {
+                            currentPath = joinPath(currentPath, fileName) + '/';
+                            updatePathDisplay();
+                            loadList();
+                        } else {
+                            window.open(url, '_blank');
+                        }
+                    });
+
+                    // 复制链接
+                    row.querySelector('.copy-link-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(url).then(() => {
+                            showMessage('链接已复制');
+                        }).catch(() => alert('复制失败'));
+                    });
+
+                    // 下载按钮（对于文件）
+                    const downloadBtn = row.querySelector('.download-btn');
+                    if (downloadBtn) {
+                        downloadBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = fileName; // 提示下载
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                        });
+                    }
+
+                    // 删除按钮
+                    row.querySelector('.delete-btn').addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        if (!confirm(`确定删除 ${fileName} 吗？`)) return;
+                        try {
+                            const response = await fetch(url, { method: 'DELETE' });
+                            if (response.ok || response.status === 204) {
+                                showMessage('删除成功');
+                                loadList();
+                            } else {
+                                showMessage(`删除失败: ${response.status}`, true);
+                            }
+                        } catch (err) {
+                            showMessage('删除出错: ' + err.message, true);
+                        }
+                    });
+                });
+            }
+
+            // 上传文件（支持多个，带进度）
+            async function uploadFiles(files) {
+                if (!files.length) return;
+                progressContainer.style.display = 'block';
+                let completed = 0;
+                let total = files.length;
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const fileName = file.name;
+                    // 注意文件名可能包含特殊字符，但浏览器会自动编码
+                    const url = getFullUrl(joinPath(currentPath, fileName));
+
+                    // 使用 XMLHttpRequest 获取上传进度
+                    await new Promise((resolve, reject) => {
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('PUT', url, true);
+                        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+
+                        xhr.upload.addEventListener('progress', (e) => {
+                            if (e.lengthComputable) {
+                                const percent = Math.round((e.loaded / e.total) * 100);
+                                progressFill.style.width = ( (i + e.loaded/e.total) / total * 100 ) + '%';
+                                progressText.textContent = `上传中: ${i+1}/${total} (${percent}%)`;
+                            }
+                        });
+
+                        xhr.addEventListener('load', () => {
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                completed++;
+                                progressFill.style.width = (completed / total * 100) + '%';
+                                progressText.textContent = `已完成 ${completed}/${total}`;
+                                resolve();
+                            } else {
+                                reject(new Error(`HTTP ${xhr.status}`));
+                            }
+                        });
+
+                        xhr.addEventListener('error', () => reject(new Error('网络错误')));
+                        xhr.send(file);
+                    }).catch(err => {
+                        showMessage(`上传 ${fileName} 失败: ${err.message}`, true);
+                    });
+                }
+
+                progressContainer.style.display = 'none';
+                progressFill.style.width = '0%';
+                showMessage(`上传完成，共 ${completed} 个文件`);
+                loadList();
+            }
+
+            // 事件绑定
+            selectFilesBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                selectedFiles = Array.from(e.target.files);
+                uploadBtn.disabled = selectedFiles.length === 0;
+                if (selectedFiles.length > 0) {
+                    uploadBtn.textContent = `上传 (${selectedFiles.length})`;
+                } else {
+                    uploadBtn.textContent = '开始上传';
+                }
+            });
+
+            uploadBtn.addEventListener('click', () => {
+                if (selectedFiles.length) {
+                    uploadFiles(selectedFiles);
+                    fileInput.value = ''; // 清空
+                    selectedFiles = [];
+                    uploadBtn.disabled = true;
+                    uploadBtn.textContent = '开始上传';
+                }
+            });
+
+            mkdirBtn.addEventListener('click', async () => {
+                const dirName = newDirName.value.trim();
+                if (!dirName) {
+                    showMessage('请输入目录名', true);
+                    return;
+                }
+                // 确保目录名以斜杠结尾
+                let dirUrl = getFullUrl(joinPath(currentPath, dirName));
+                if (!dirUrl.endsWith('/')) dirUrl += '/';
+                try {
+                    const response = await fetch(dirUrl, { method: 'MKCOL' });
+                    if (response.ok || response.status === 201) {
+                        showMessage('目录创建成功');
+                        newDirName.value = '';
+                        loadList();
+                    } else {
+                        showMessage(`创建失败: ${response.status}`, true);
+                    }
+                } catch (err) {
+                    showMessage('创建出错: ' + err.message, true);
+                }
+            });
+
+            homeBtn.addEventListener('click', () => {
+                currentPath = '/';
+                updatePathDisplay();
+                loadList();
+            });
+
+            goToParentBtn.addEventListener('click', () => {
+                if (currentPath === '/') return;
+                const parts = currentPath.split('/').filter(p => p.length > 0);
+                parts.pop();
+                currentPath = '/' + parts.join('/') + (parts.length ? '/' : '');
+                updatePathDisplay();
+                loadList();
+            });
+
+            refreshBtn.addEventListener('click', () => {
+                loadList();
+            });
+
+            serverInput.addEventListener('change', () => {
+                serverBase = serverInput.value.trim();
+                loadList();
+            });
+
+            // 启动
+            updatePathDisplay();
+            loadList();
+        })();
+    </script>
+</body>
+</html>
